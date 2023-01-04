@@ -1,0 +1,54 @@
+import requests
+from datetime import datetime
+import smtplib
+import time
+
+MY_EMAIL = "Your_email_here"
+MY_PASSWORD = "Your_password_here"
+MY_LAT = 45.747860 # Your latitude
+MY_LONG = -0.-73.606210 # Your longitude
+Earth=0
+
+
+def is_your_favorite_asteroid_overhead():
+    response = requests.get(url="https://api.nasa.gov/neo/rest/v1/neo/3542519?api_key=DEMO_KEY") #Feel free to choose your favorite asteroid.
+    response.raise_for_status()
+    data = response.json()
+
+    asteroid_date = float(data["close_approach_date"]["close_approach_date_full"])
+    missing_km = float(data["close_approach_date"]["miss_distance"]["kilometers"])
+
+    #Feel free to choose a distance between Earth and your favorite asteroid
+    if datetime.now().hour-3<= asteroid_date <= datetime.now().hour+3 and Earth <= missing_km <= 1000000:
+        return True
+
+
+def is_night():
+    parameters = {
+        "lat": MY_LAT,
+        "lng": MY_LONG,
+        "formatted": 0,
+    }
+    response = requests.get("https://api.sunrise-sunset.org/json", params=parameters)
+    response.raise_for_status()
+    data = response.json()
+    sunrise = int(data["results"]["sunrise"].split("T")[1].split(":")[0])
+    sunset = int(data["results"]["sunset"].split("T")[1].split(":")[0])
+
+    time_now = datetime.now().hour
+
+    if time_now >= sunset or time_now <= sunrise:
+        return True
+
+
+while True:
+    time.sleep(60)
+    if is_your_favorite_asteroid_overhead() and is_night():
+        connection = smtplib.SMTP("__YOUR_SMTP_ADDRESS_HERE___")
+        connection.starttls()
+        connection.login(MY_EMAIL, MY_PASSWORD)
+        connection.sendmail(
+            from_addr=MY_EMAIL,
+            to_addrs=MY_EMAIL,
+            msg="Subject:Look Up ;-)\n\nYour favorite asteroid  is above you in the sky."
+        )
